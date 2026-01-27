@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'deploy/helm/**'
+  workflow_dispatch:
 
 jobs:
   release:
