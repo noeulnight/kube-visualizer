@@ -26,9 +26,22 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
 
+      - name: Create gh-pages branch if not exists
+        run: |
+          if ! git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+            git checkout --orphan gh-pages
+            git rm -rf .
+            echo "# Helm Charts" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages"
+            git push origin gh-pages
+            git checkout main
+          fi
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
         with:
           charts_dir: deploy/helm
+          skip_existing: true
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
