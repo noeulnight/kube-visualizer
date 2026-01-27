@@ -3,7 +3,7 @@ replicaCount: 1
 backend:
   image:
     repository: ghcr.io/noeulnight/kube-visualizer-backend
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
     tag: "latest"
   service:
     type: ClusterIP
@@ -19,7 +19,7 @@ backend:
 visualizer:
   image:
     repository: ghcr.io/noeulnight/kube-visualizer-frontend
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
     tag: "latest"
   service:
     type: ClusterIP
