@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kube-visualizer.fullname" . }}-visualizer
+  labels:
+    {{- include "kube-visualizer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: visualizer
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kube-visualizer.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: visualizer
+  template:
+    metadata:
+      labels:
+        {{- include "kube-visualizer.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: visualizer
+    spec:
+      containers:
+        - name: visualizer
+          image: "{{ .Values.visualizer.image.repository }}:{{ .Values.visualizer.image.tag }}"
+          imagePullPolicy: {{ .Values.visualizer.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.visualizer.resources | nindent 12 }}
