@@ -2,7 +2,7 @@ replicaCount: 1
 
 backend:
   image:
-    repository: ghcr.io/YOUR_USERNAME/kube-visualizer-backend
+    repository: ghcr.io/noeulnight/kube-visualizer-backend
     pullPolicy: IfNotPresent
     tag: "latest"
   service:
@@ -18,7 +18,7 @@ backend:
 
 visualizer:
   image:
-    repository: ghcr.io/YOUR_USERNAME/kube-visualizer-frontend
+    repository: ghcr.io/noeulnight/kube-visualizer-frontend
     pullPolicy: IfNotPresent
     tag: "latest"
   service:
