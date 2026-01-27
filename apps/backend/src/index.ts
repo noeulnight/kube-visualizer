@@ -3,6 +3,7 @@ import cors from "cors";
 import { getCurrentState, startInformers } from "./informer";
 import { buildDelta } from "./graph";
 import { ResourceData, ResourceType } from "./types";
+import "dotenv/config";
 
 const app = express();
 const PORT = 3000;

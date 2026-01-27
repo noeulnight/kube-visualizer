@@ -9,7 +9,12 @@ import {
 } from "./types";
 
 const kc = new k8s.KubeConfig();
-kc.loadFromFile(path.resolve("../../.kube/config.yml"));
+
+if (process.env.KUBECONFIG) {
+  kc.loadFromFile(process.env.KUBECONFIG);
+} else {
+  kc.loadFromCluster();
+}
 
 const coreApi = kc.makeApiClient(k8s.CoreV1Api);
 const appsApi = kc.makeApiClient(k8s.AppsV1Api);
