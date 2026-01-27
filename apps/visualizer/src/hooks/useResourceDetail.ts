@@ -19,8 +19,9 @@ export const useResourceDetail = (resourceId: string | null) => {
       setError(null);
 
       try {
+        const apiUrl = import.meta.env.VITE_API_URL || "";
         const response = await fetch(
-          `http://localhost:3000/api/resource/${encodeURIComponent(resourceId)}`
+          `${apiUrl}/api/resource/${encodeURIComponent(resourceId)}`
         );
 
         if (!response.ok) {

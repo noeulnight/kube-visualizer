@@ -184,7 +184,8 @@ export default function Flow() {
     const connect = (attempt: number = 0) => {
       if (!isMounted) return;
 
-      eventSource = new EventSource("http://localhost:3000/events");
+      const apiUrl = import.meta.env.VITE_API_URL || "";
+      eventSource = new EventSource(`${apiUrl}/events`);
 
       eventSource.onopen = () => {
         if (!isMounted) return;
