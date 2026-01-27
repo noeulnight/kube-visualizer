@@ -21,8 +21,8 @@ FROM nginx:alpine
 # Copy built files from builder
 COPY --from=builder /app/apps/visualizer/dist /usr/share/nginx/html
 
-# Copy nginx config if needed (optional, default is fine for simple SPA)
-# COPY apps/visualizer/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config for SPA routing
+COPY apps/visualizer/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
