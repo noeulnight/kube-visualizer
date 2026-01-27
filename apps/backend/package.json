@@ -1,0 +1,30 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "tsc-watch --onSuccess \"node dist/index.js\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.28.0",
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.7",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0",
+    "ts-node": "^10.9.2",
+    "tsc-watch": "^7.2.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.53.1"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^1.4.0",
+    "cors": "^2.8.5",
+    "express": "^4.22.1"
+  }
+}
