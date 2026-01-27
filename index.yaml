@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   kube-visualizer:
   - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-01-27T11:08:12.939237468Z"
+    description: A Kubernetes cluster visualizer
+    digest: 3fb6cbb70188bd480e88ac2a0d5a5c6d2bcb6e8cecdf8bf17f97e64af1e0d120
+    name: kube-visualizer
+    type: application
+    urls:
+    - https://github.com/noeulnight/kube-visualizer/releases/download/kube-visualizer-0.2.0/kube-visualizer-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: 1.0.0
     created: "2026-01-27T11:00:18.933458521Z"
     description: A Kubernetes cluster visualizer
@@ -11,4 +21,4 @@ entries:
     urls:
     - https://github.com/noeulnight/kube-visualizer/releases/download/kube-visualizer-0.1.0/kube-visualizer-0.1.0.tgz
     version: 0.1.0
-generated: "2026-01-27T11:00:18.933464933Z"
+generated: "2026-01-27T11:08:12.939250252Z"
