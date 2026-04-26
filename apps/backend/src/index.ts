@@ -1,6 +1,7 @@
 import express from "express";
+import type { Response } from "express";
 import cors from "cors";
-import { getCurrentState, startInformers } from "./informer";
+import { getCurrentState, k8sEvents, startInformers } from "./informer";
 import { buildDelta } from "./graph";
 import { Delta, ResourceData, ResourceType } from "./types";
 import "dotenv/config";
@@ -17,33 +18,63 @@ const isEmptyDelta = (delta: Delta) =>
   delta.addedEdges.length === 0 &&
   delta.removedEdges.length === 0;
 
+const sseClients = new Set<Response>();
+let graphResources: ResourceData[] = [];
+let pendingGraphFlush: NodeJS.Timeout | null = null;
+
+const writeSseDelta = (client: Response, delta: Delta) => {
+  if (!client.writableEnded) {
+    client.write(`data: ${JSON.stringify(delta)}\n\n`);
+  }
+};
+
+const flushGraphChanges = () => {
+  pendingGraphFlush = null;
+  const nextResources = getCurrentState();
+  if (sseClients.size === 0) {
+    graphResources = nextResources;
+    return;
+  }
+
+  const delta = buildDelta(graphResources, nextResources);
+  graphResources = nextResources;
+
+  if (isEmptyDelta(delta)) {
+    return;
+  }
+
+  sseClients.forEach((client) => writeSseDelta(client, delta));
+};
+
+const scheduleGraphFlush = () => {
+  if (pendingGraphFlush) return;
+  pendingGraphFlush = setTimeout(flushGraphChanges, 250);
+};
+
+k8sEvents.on("event", scheduleGraphFlush);
+
 app.get("/events", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
   console.log("Client connected");
+  const hadClients = sseClients.size > 0;
+  sseClients.add(res);
 
-  let cachedResources = getCurrentState();
-  const delta = buildDelta([], cachedResources);
-  res.write(`data: ${JSON.stringify(delta)}\n\n`);
-
-  const deltaInterval = setInterval(() => {
-    const newCachedResources = getCurrentState();
-    const updatedDelta = buildDelta(cachedResources, newCachedResources);
-    cachedResources = newCachedResources;
-    if (!isEmptyDelta(updatedDelta)) {
-      res.write(`data: ${JSON.stringify(updatedDelta)}\n\n`);
-    }
-  }, 1000);
+  const currentResources = getCurrentState();
+  if (!hadClients) {
+    graphResources = currentResources;
+  }
+  writeSseDelta(res, buildDelta([], currentResources));
 
   const heartbeatInterval = setInterval(() => {
     res.write(`: heartbeat\n\n`);
   }, 30000);
 
   req.on("close", () => {
-    clearInterval(deltaInterval);
     clearInterval(heartbeatInterval);
+    sseClients.delete(res);
     console.log("Client disconnected");
   });
 });

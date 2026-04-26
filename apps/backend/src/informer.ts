@@ -27,6 +27,7 @@ const networkingApi = kc.makeApiClient(k8s.NetworkingV1Api);
 const discoveryApi = kc.makeApiClient(k8s.DiscoveryV1Api);
 
 export const k8sEvents = new EventEmitter();
+const logK8sEvents = process.env.LOG_K8S_EVENTS === "true";
 
 const resourceCache: Map<string, ResourceData> = new Map();
 const getResourceKey = (type: ResourceType, obj: Resources) =>
@@ -37,14 +38,23 @@ const emitAndCache = (
   { raw, resourceType }: ResourceData,
 ) => {
   const key = getResourceKey(resourceType, raw);
-  console.log(
-    `[K8S-EVENT] ${eventType} ${resourceType} ${raw.metadata?.namespace ?? ""}/${raw.metadata?.name}`,
-  );
 
   if (eventType === "DELETED") {
     resourceCache.delete(key);
   } else {
+    const cached = resourceCache.get(key);
+    if (
+      cached?.raw.metadata?.resourceVersion === raw.metadata?.resourceVersion
+    ) {
+      return;
+    }
     resourceCache.set(key, { raw, resourceType } as ResourceData);
+  }
+
+  if (logK8sEvents) {
+    console.log(
+      `[K8S-EVENT] ${eventType} ${resourceType} ${raw.metadata?.namespace ?? ""}/${raw.metadata?.name}`,
+    );
   }
 
   k8sEvents.emit("event", {
