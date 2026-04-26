@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 68">
+  <path
+    fill="#326ce5"
+    d="M34 1.5c2.1 0 4.1.5 5.9 1.5l20.4 11.8c3.6 2.1 5.8 5.9 5.8 10v23.6c0 4.1-2.2 7.9-5.8 10L39.9 70.2c-3.6 2.1-8.1 2.1-11.7 0L7.8 58.4C4.2 56.3 2 52.5 2 48.4V24.8c0-4.1 2.2-7.9 5.8-10L28.2 3c1.8-1 3.8-1.5 5.8-1.5Z"
+    transform="translate(0 -3)"
+  />
+  <path
+    fill="#fff"
+    d="M34 5.4c1.4 0 2.8.4 4 1.1l20.4 11.8c2.4 1.4 3.9 3.9 3.9 6.6v23.6c0 2.7-1.5 5.3-3.9 6.6L38 66.9c-2.4 1.4-5.4 1.4-7.8 0L9.8 55.1c-2.4-1.4-3.9-3.9-3.9-6.6V24.9c0-2.7 1.5-5.3 3.9-6.6L30.2 6.5c1.2-.7 2.5-1.1 3.8-1.1Zm0 3.5c-.8 0-1.5.2-2.2.6L11.4 21.3c-1.3.8-2.1 2.1-2.1 3.6v23.6c0 1.5.8 2.9 2.1 3.6l20.4 11.8c1.3.8 3 .8 4.4 0l20.4-11.8c1.3-.8 2.1-2.1 2.1-3.6V24.9c0-1.5-.8-2.9-2.1-3.6L36.2 9.5c-.7-.4-1.4-.6-2.2-.6Z"
+    transform="translate(0 -3)"
+  />
+  <g fill="#fff">
+    <rect x="17" y="19" width="34" height="22" rx="3" />
+    <rect x="22" y="24" width="8" height="5" rx="1.2" fill="#326ce5" />
+    <rect x="32" y="24" width="8" height="5" rx="1.2" fill="#326ce5" />
+    <rect x="42" y="24" width="4" height="5" rx="1.2" fill="#326ce5" />
+    <rect x="22" y="32" width="24" height="3" rx="1.2" fill="#326ce5" />
+    <rect x="21" y="44" width="4" height="6" rx="1" />
+    <rect x="32" y="44" width="4" height="6" rx="1" />
+    <rect x="43" y="44" width="4" height="6" rx="1" />
+    <rect x="23" y="48" width="22" height="2" />
+  </g>
+  <text
+    x="34"
+    y="60"
+    fill="#fff"
+    font-family="Arial, sans-serif"
+    font-size="9"
+    text-anchor="middle"
+  >
+    node
+  </text>
+</svg>

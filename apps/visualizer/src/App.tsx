@@ -52,7 +52,7 @@ export interface Delta {
 const resourceIcons: Record<string, string> = {
   namespace: "ns.svg",
   domain: "ing.svg",
-  node: "group.svg",
+  node: "node.svg",
   pod: "pod.svg",
   service: "svc.svg",
   ingress: "ing.svg",
@@ -123,6 +123,7 @@ export default function Flow() {
   const [focusedResourceId, setFocusedResourceId] = useState<string | null>(
     null,
   );
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
 
   const { nodes, edges } = useMemo(() => {
     const filteredNodes = allNodes.filter((node) =>
@@ -292,6 +293,7 @@ export default function Flow() {
   const handleSelectNode = (nodeId: string) => {
     setSelectedResourceId(nodeId);
     setFocusedResourceId(nodeId);
+    setMobileFiltersOpen(false);
   };
 
   return (
@@ -304,17 +306,18 @@ export default function Flow() {
         onNodeClick={setSelectedResourceId}
       />
 
-      <div className="absolute left-4 top-4 flex flex-col gap-2">
+      <div className="absolute inset-x-3 top-3 z-20 flex flex-col gap-2 sm:inset-x-auto sm:left-4 sm:top-4 sm:w-96">
         <ResourceSearch nodes={nodes} onSelectNode={handleSelectNode} />
         {selectedResourceId && (
           <ResourceDetailPanel
             resourceId={selectedResourceId}
             onClose={() => setSelectedResourceId(null)}
+            className="hidden sm:flex"
           />
         )}
       </div>
 
-      <div className="absolute left-1/2 top-4 -translate-x-1/2">
+      <div className="absolute bottom-16 right-3 z-10 sm:bottom-4 sm:right-4">
         <ConnectionStatus
           connected={connected}
           reconnecting={reconnecting}
@@ -322,7 +325,7 @@ export default function Flow() {
         />
       </div>
 
-      <div className="absolute right-4 top-4 space-y-2">
+      <div className="absolute right-4 top-4 hidden space-y-2 sm:block">
         <ResourceTypeFilter
           allNodes={allNodes}
           allEdges={allEdges}
@@ -331,6 +334,37 @@ export default function Flow() {
           hiddenEdgeTypes={hiddenEdgeTypes}
           setHiddenEdgeTypes={setHiddenEdgeTypes}
         />
+      </div>
+
+      <div className="absolute inset-x-3 bottom-3 z-30 flex flex-col gap-2 sm:hidden">
+        {selectedResourceId && (
+          <ResourceDetailPanel
+            resourceId={selectedResourceId}
+            onClose={() => setSelectedResourceId(null)}
+            className="max-h-[45vh] w-full"
+          />
+        )}
+
+        {mobileFiltersOpen && (
+          <ResourceTypeFilter
+            allNodes={allNodes}
+            allEdges={allEdges}
+            visibleResourceTypes={visibleResourceTypes}
+            setVisibleResourceTypes={setVisibleResourceTypes}
+            hiddenEdgeTypes={hiddenEdgeTypes}
+            setHiddenEdgeTypes={setHiddenEdgeTypes}
+            className="max-h-[48vh] w-full"
+          />
+        )}
+
+        <button
+          type="button"
+          onClick={() => setMobileFiltersOpen((isOpen) => !isOpen)}
+          className="self-start rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur-md active:bg-white/20"
+          aria-expanded={mobileFiltersOpen}
+        >
+          Filter
+        </button>
       </div>
 
       {initialLoading && (

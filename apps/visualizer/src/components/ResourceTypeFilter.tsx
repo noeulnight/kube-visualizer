@@ -9,6 +9,7 @@ interface ResourceTypeFilterProps {
   setVisibleResourceTypes: (types: Set<string>) => void;
   hiddenEdgeTypes: Set<string>;
   setHiddenEdgeTypes: (types: Set<string>) => void;
+  className?: string;
 }
 
 export default function ResourceTypeFilter({
@@ -18,6 +19,7 @@ export default function ResourceTypeFilter({
   setVisibleResourceTypes,
   hiddenEdgeTypes,
   setHiddenEdgeTypes,
+  className = "",
 }: ResourceTypeFilterProps) {
   const edgeTypeCounts = Array.from(
     allEdges.reduce((counts, edge) => {
@@ -47,7 +49,9 @@ export default function ResourceTypeFilter({
   };
 
   return (
-    <div className="bg-white/5 backdrop-blur-md p-3 rounded-lg border border-white/10 shadow-xl max-h-[60vh] overflow-hidden flex flex-col">
+    <div
+      className={`flex max-h-[60vh] flex-col overflow-hidden rounded-lg border border-white/10 bg-white/5 p-3 shadow-xl backdrop-blur-md ${className}`}
+    >
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-white font-semibold text-sm">Filter</h3>
       </div>

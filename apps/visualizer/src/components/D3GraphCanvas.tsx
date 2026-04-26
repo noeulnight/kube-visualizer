@@ -538,8 +538,14 @@ export default function D3GraphCanvas({
         <div
           className="pointer-events-none fixed z-50 min-w-48 max-w-80 rounded border border-white/10 bg-black/90 px-3 py-2 text-xs text-white shadow-2xl backdrop-blur-md"
           style={{
-            left: hoveredNode.x + 14,
-            top: hoveredNode.y + 14,
+            left: Math.max(
+              12,
+              Math.min(hoveredNode.x + 14, window.innerWidth - 280),
+            ),
+            top: Math.max(
+              12,
+              Math.min(hoveredNode.y + 14, window.innerHeight - 160),
+            ),
           }}
         >
           <div className="mb-1 flex items-center gap-2">
@@ -575,7 +581,7 @@ export default function D3GraphCanvas({
           </div>
         </div>
       )}
-      <div className="absolute bottom-4 left-4 flex overflow-hidden rounded border border-white/10 bg-white/5 backdrop-blur-md shadow-xl">
+      <div className="absolute bottom-16 left-3 flex overflow-hidden rounded border border-white/10 bg-white/5 shadow-xl backdrop-blur-md sm:bottom-4 sm:left-4">
         <button
           type="button"
           onClick={() => {

@@ -5,7 +5,7 @@ interface ResourceIconProps {
 
 const iconMapping: Record<string, string> = {
   Namespace: "ns.svg",
-  Node: "group.svg",
+  Node: "node.svg",
   Pod: "pod.svg",
   Service: "svc.svg",
   Ingress: "ing.svg",

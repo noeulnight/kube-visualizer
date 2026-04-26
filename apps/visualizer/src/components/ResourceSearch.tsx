@@ -35,7 +35,7 @@ export default function ResourceSearch({
   const resultNodes = filteredNodes.slice(0, 15);
 
   return (
-    <div className="flex flex-col gap-2 w-96">
+    <div className="flex w-full flex-col gap-2 sm:w-96">
       <div className="bg-white/5 backdrop-blur-md p-2 rounded-lg border border-white/10 shadow-xl flex items-center gap-2">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -79,7 +79,7 @@ export default function ResourceSearch({
       </div>
 
       {resultNodes.length > 0 && (
-        <div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 shadow-xl max-h-[85vh] overflow-hidden flex flex-col w-96">
+        <div className="flex max-h-[42vh] w-full flex-col overflow-hidden rounded-lg border border-white/10 bg-white/5 shadow-xl backdrop-blur-md sm:max-h-[85vh] sm:w-96">
           <div className="overflow-y-auto no-scrollbar">
             {resultNodes.map((node) => {
               // Extract type from node.type or id

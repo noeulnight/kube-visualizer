@@ -5,18 +5,22 @@ import ResourceIcon from "./ResourceIcon";
 interface ResourceDetailPanelProps {
   resourceId: string | null;
   onClose: () => void;
+  className?: string;
 }
 
 export default function ResourceDetailPanel({
   resourceId,
   onClose,
+  className = "",
 }: ResourceDetailPanelProps) {
   const { resource, loading, error } = useResourceDetail(resourceId);
 
   if (!resourceId) return null;
 
   return (
-    <div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 shadow-xl max-h-[85vh] overflow-hidden flex flex-col w-96">
+    <div
+      className={`flex max-h-[85vh] w-full flex-col overflow-hidden rounded-lg border border-white/10 bg-white/5 shadow-xl backdrop-blur-md sm:w-96 ${className}`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-white/10 flex-shrink-0">
         <h2 className="text-white text-sm font-semibold">Resource Details</h2>
