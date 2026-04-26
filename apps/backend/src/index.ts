@@ -2,13 +2,20 @@ import express from "express";
 import cors from "cors";
 import { getCurrentState, startInformers } from "./informer";
 import { buildDelta } from "./graph";
-import { ResourceData, ResourceType } from "./types";
+import { Delta, ResourceData, ResourceType } from "./types";
 import "dotenv/config";
 
 const app = express();
 const PORT = 3000;
 
 app.use(cors());
+
+const isEmptyDelta = (delta: Delta) =>
+  delta.addedNodes.length === 0 &&
+  delta.modifiedNodes.length === 0 &&
+  delta.removedNodes.length === 0 &&
+  delta.addedEdges.length === 0 &&
+  delta.removedEdges.length === 0;
 
 app.get("/events", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
@@ -21,14 +28,22 @@ app.get("/events", (req, res) => {
   const delta = buildDelta([], cachedResources);
   res.write(`data: ${JSON.stringify(delta)}\n\n`);
 
-  setInterval(() => {
+  const deltaInterval = setInterval(() => {
     const newCachedResources = getCurrentState();
     const updatedDelta = buildDelta(cachedResources, newCachedResources);
     cachedResources = newCachedResources;
-    res.write(`data: ${JSON.stringify(updatedDelta)}\n\n`);
+    if (!isEmptyDelta(updatedDelta)) {
+      res.write(`data: ${JSON.stringify(updatedDelta)}\n\n`);
+    }
   }, 1000);
 
+  const heartbeatInterval = setInterval(() => {
+    res.write(`: heartbeat\n\n`);
+  }, 30000);
+
   req.on("close", () => {
+    clearInterval(deltaInterval);
+    clearInterval(heartbeatInterval);
     console.log("Client disconnected");
   });
 });

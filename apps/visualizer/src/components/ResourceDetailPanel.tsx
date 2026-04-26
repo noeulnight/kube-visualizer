@@ -1,5 +1,5 @@
 import { useResourceDetail } from "../hooks/useResourceDetail";
-import { formatAge } from "../types/resources";
+import { formatAge, type ResourceData } from "../types/resources";
 import ResourceIcon from "./ResourceIcon";
 
 interface ResourceDetailPanelProps {
@@ -87,7 +87,7 @@ export default function ResourceDetailPanel({
   );
 }
 
-function OverviewTab({ resource }: { resource: any }) {
+function OverviewTab({ resource }: { resource: ResourceData }) {
   const metadata = resource.raw.metadata || {};
   const spec = resource.raw.spec || {};
   const status = resource.raw.status || {};
@@ -151,13 +151,13 @@ function OverviewTab({ resource }: { resource: any }) {
       )}
 
       {/* Annotations */}
-      {metadata.annotations && metadata.annotations.length > 0 && (
+      {metadata.annotations && Object.keys(metadata.annotations).length > 0 && (
         <div className="bg-white/5 rounded-lg p-2 border border-white/10">
           <h3 className="text-white font-semibold text-[10px] mb-2 uppercase tracking-wide">
             Annotations
           </h3>
           <div className="space-y-0.5 text-[10px] font-mono max-h-32 overflow-y-auto no-scrollbar">
-            {metadata.annotations.map(([key, value]: [string, string]) => (
+            {Object.entries(metadata.annotations).map(([key, value]) => (
               <div key={key} className="text-white/70 break-all">
                 <span className="text-white/50">{key}:</span> {value}
               </div>
@@ -229,7 +229,7 @@ function OverviewTab({ resource }: { resource: any }) {
                   Conditions
                 </span>
                 <div className="space-y-0.5">
-                  {status.conditions.map((condition: any, idx: number) => (
+                  {status.conditions.map((condition, idx) => (
                     <div
                       key={idx}
                       className="flex justify-between text-[10px] bg-white/5 p-1 rounded"
@@ -260,7 +260,7 @@ function OverviewTab({ resource }: { resource: any }) {
             Containers
           </h3>
           <div className="space-y-2">
-            {status.containerStatuses.map((container: any, idx: number) => (
+            {status.containerStatuses.map((container, idx) => (
               <div
                 key={idx}
                 className="bg-white/5 p-3 rounded border border-white/10"
@@ -297,7 +297,7 @@ function OverviewTab({ resource }: { resource: any }) {
             Ports
           </h3>
           <div className="space-y-2">
-            {spec.ports.map((port: any, idx: number) => (
+            {spec.ports.map((port, idx) => (
               <div
                 key={idx}
                 className="flex justify-between text-[10px] bg-white/5 p-1 rounded"

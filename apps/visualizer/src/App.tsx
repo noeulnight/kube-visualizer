@@ -1,34 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ReactFlow,
-  Background,
-  useNodesState,
-  useEdgesState,
-  addEdge,
-  getIncomers,
-  getOutgoers,
-  getConnectedEdges,
-  type Connection,
-  type Node,
-  type Edge as FlowEdge,
-  MiniMap,
-  Controls,
-  Panel,
-  type NodeMouseHandler,
-} from "@xyflow/react";
-import dagre from "dagre";
+import { useEffect, useMemo, useState } from "react";
 
-import "@xyflow/react/dist/style.css";
-import ResourceDetailPanel from "./components/ResourceDetailPanel";
-import { typeMapping } from "./types/resources";
-import ResourceTypeFilter from "./components/ResourceTypeFilter";
 import ConnectionStatus from "./components/ConnectionStatus";
+import D3GraphCanvas from "./components/D3GraphCanvas";
+import ResourceDetailPanel from "./components/ResourceDetailPanel";
+import ResourceSearch from "./components/ResourceSearch";
+import ResourceTypeFilter from "./components/ResourceTypeFilter";
+import { type GraphEdge, type GraphNode } from "./types/graph";
+import { typeMapping } from "./types/resources";
 
 export interface EdgeData {
   source: string;
   target: string;
   type: string;
 }
+
 export const ResourceType = {
   Pod: "Pod",
   Namespace: "Namespace",
@@ -59,122 +44,99 @@ export interface NodeMetadata {
 export interface Delta {
   addedNodes: NodeMetadata[];
   modifiedNodes: NodeMetadata[];
-
   removedNodes: string[];
-
   addedEdges: EdgeData[];
   removedEdges: EdgeData[];
 }
 
-import { nodeTypes } from "./components/nodes/nodeTypes";
-import ResourceSearch from "./components/ResourceSearch";
-
-const nodeWidth = 200;
-const nodeHeight = 80;
-
-const getLayoutedElements = (nodes: Node[], edges: FlowEdge[]) => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: "LR", nodesep: 8, ranksep: 200 });
-
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-  });
-
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(dagreGraph);
-
-  const newNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
-      ...node,
-      targetPosition: "left",
-      sourcePosition: "right",
-      position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
-      },
-    } as Node;
-  });
-
-  return { nodes: newNodes, edges };
+const resourceIcons: Record<string, string> = {
+  namespace: "ns.svg",
+  domain: "ing.svg",
+  node: "group.svg",
+  pod: "pod.svg",
+  service: "svc.svg",
+  ingress: "ing.svg",
+  deployment: "deploy.svg",
+  replicaSet: "rs.svg",
+  daemonSet: "ds.svg",
+  statefulSet: "sts.svg",
+  configMap: "cm.svg",
+  secret: "secret.svg",
+  serviceAccount: "sa.svg",
+  endpointSlice: "ep.svg",
+  persistentVolume: "pv.svg",
+  persistentVolumeClaim: "pvc.svg",
 };
 
-const createEdge = (e: any): FlowEdge => {
+const getResourceIcon = (type: string) => resourceIcons[type] || "pod.svg";
+
+const createEdge = (edge: EdgeData): GraphEdge => {
   let style = { stroke: "#999", strokeWidth: 1 };
   let animated = false;
 
-  if (e.type === "owner") {
-    style = { stroke: "#f43f5e", strokeWidth: 2 }; // rose-500
-  } else if (e.type === "contains") {
-    style = { stroke: "#a855f7", strokeWidth: 1 }; // purple-500
-  } else if (e.type === "selects") {
-    style = { stroke: "#22c55e", strokeWidth: 1.5 }; // green-500
+  if (edge.type === "owner") {
+    style = { stroke: "#f43f5e", strokeWidth: 2 };
+  } else if (edge.type === "contains") {
+    style = { stroke: "#a855f7", strokeWidth: 1 };
+  } else if (edge.type === "selects") {
+    style = { stroke: "#22c55e", strokeWidth: 1.5 };
     animated = true;
-  } else if (e.type === "routes-to") {
-    style = { stroke: "#06b6d4", strokeWidth: 2 }; // cyan-500
+  } else if (edge.type === "routes-to") {
+    style = { stroke: "#06b6d4", strokeWidth: 2 };
     animated = true;
+  } else if (edge.type === "hosted-on") {
+    style = { stroke: "#fb923c", strokeWidth: 1.5 };
+  } else if (edge.type === "uses-secret") {
+    style = { stroke: "#eab308", strokeWidth: 1.2 };
+  } else if (edge.type === "uses-config") {
+    style = { stroke: "#f59e0b", strokeWidth: 1.2 };
+  } else if (edge.type === "has-endpoints") {
+    style = { stroke: "#38bdf8", strokeWidth: 1.4 };
   }
 
   return {
-    id: `e-${e.type}-${e.source}-${e.target}`,
-    source: e.source,
-    target: e.target,
-    label: e.type,
-    type: "smoothstep",
+    id: `e-${edge.type}-${edge.source}-${edge.target}`,
+    source: edge.source,
+    target: edge.target,
+    label: edge.type,
     animated,
     style,
-    labelStyle: { fill: "#999", fontSize: 8, fontWeight: 700 },
   };
 };
 
 export default function Flow() {
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
+  const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [connected, setConnected] = useState<boolean>(false);
   const [reconnecting, setReconnecting] = useState<boolean>(false);
   const [reconnectAttempt, setReconnectAttempt] = useState<number>(0);
-  const [allNodes, setAllNodes] = useState<Node[]>([]);
-  const [allEdges, setAllEdges] = useState<FlowEdge[]>([]);
+  const [allNodes, setAllNodes] = useState<GraphNode[]>([]);
+  const [allEdges, setAllEdges] = useState<GraphEdge[]>([]);
   const [visibleResourceTypes, setVisibleResourceTypes] = useState<Set<string>>(
     new Set(Object.values(typeMapping)),
+  );
+  const [hiddenEdgeTypes, setHiddenEdgeTypes] = useState<Set<string>>(
+    new Set(),
   );
   const [selectedResourceId, setSelectedResourceId] = useState<string | null>(
     null,
   );
+  const [focusedResourceId, setFocusedResourceId] = useState<string | null>(
+    null,
+  );
 
-  // Keep refs to have access to the latest state in the EventSource closure
-  const nodesRef = useRef(nodes);
-  const edgesRef = useRef(edges);
-
-  useEffect(() => {
-    nodesRef.current = nodes;
-  }, [nodes]);
-
-  useEffect(() => {
-    edgesRef.current = edges;
-  }, [edges]);
-
-  useEffect(() => {
+  const { nodes, edges } = useMemo(() => {
     const filteredNodes = allNodes.filter((node) =>
-      visibleResourceTypes.has(node.type || ""),
+      visibleResourceTypes.has(node.type),
     );
-    const filteredNodeIds = new Set(filteredNodes.map((n) => n.id));
+    const filteredNodeIds = new Set(filteredNodes.map((node) => node.id));
     const filteredEdges = allEdges.filter(
       (edge) =>
+        !hiddenEdgeTypes.has(edge.label) &&
         filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target),
     );
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      filteredNodes,
-      filteredEdges,
-    );
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
-  }, [visibleResourceTypes, allNodes, allEdges, setNodes, setEdges]);
+    return { nodes: filteredNodes, edges: filteredEdges };
+  }, [visibleResourceTypes, hiddenEdgeTypes, allNodes, allEdges]);
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
@@ -189,6 +151,7 @@ export default function Flow() {
 
       eventSource.onopen = () => {
         if (!isMounted) return;
+        setInitialLoading(false);
         setConnected(true);
         setReconnecting(false);
         setReconnectAttempt(0);
@@ -199,10 +162,10 @@ export default function Flow() {
         console.error("EventSource failed:", err);
         if (!isMounted) return;
 
+        setInitialLoading(false);
         setConnected(false);
         eventSource?.close();
 
-        // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
         const backoffDelay = Math.min(1000 * Math.pow(2, attempt), 30000);
         const nextAttempt = attempt + 1;
 
@@ -222,49 +185,65 @@ export default function Flow() {
 
       eventSource.onmessage = (event) => {
         if (!isMounted) return;
+        setInitialLoading(false);
         setConnected(true);
         const delta = JSON.parse(event.data) as Delta;
 
         if (delta.addedNodes.length > 0) {
-          const newNodes: Node[] = delta.addedNodes.map((n) => ({
-            id: n.id,
-            type: typeMapping[n.resourceType] || "pod",
-            data: { label: n.name },
-            position: { x: 0, y: 0 },
-          }));
-          setAllNodes((nds) => {
-            const nodeMap = new Map(nds.map((n) => [n.id, n]));
-            newNodes.forEach((n) => nodeMap.set(n.id, n));
+          const newNodes: GraphNode[] = delta.addedNodes.map((node) => {
+            const type = typeMapping[node.resourceType] || "pod";
+            return {
+              id: node.id,
+              type,
+              data: { label: node.name, icon: getResourceIcon(type) },
+              position: { x: 0, y: 0 },
+            };
+          });
+          setAllNodes((currentNodes) => {
+            const nodeMap = new Map(currentNodes.map((node) => [node.id, node]));
+            newNodes.forEach((node) => nodeMap.set(node.id, node));
             return Array.from(nodeMap.values());
           });
         }
 
-        // Handle modified nodes
         if (delta.modifiedNodes.length > 0) {
-          setAllNodes((nds) =>
-            nds.map((node) => {
+          setAllNodes((currentNodes) => {
+            let changed = false;
+            const nextNodes = currentNodes.map((node) => {
               const modified = delta.modifiedNodes.find(
-                (m) => m.id === node.id,
+                (candidate) => candidate.id === node.id,
               );
-              if (modified) {
-                return {
-                  ...node,
-                  type: typeMapping[modified.resourceType] || "pod",
-                  data: { ...node.data, label: modified.name },
-                };
+              if (!modified) return node;
+
+              const type = typeMapping[modified.resourceType] || "pod";
+              const nextNode = {
+                ...node,
+                type,
+                data: {
+                  ...node.data,
+                  label: modified.name,
+                  icon: getResourceIcon(type),
+                },
+              };
+              if (
+                nextNode.type !== node.type ||
+                nextNode.data.label !== node.data.label ||
+                nextNode.data.icon !== node.data.icon
+              ) {
+                changed = true;
               }
-              return node;
-            }),
-          );
+              return nextNode;
+            });
+            return changed ? nextNodes : currentNodes;
+          });
         }
 
-        // Handle removed nodes
         if (delta.removedNodes.length > 0) {
-          setAllNodes((nds) =>
-            nds.filter((node) => !delta.removedNodes.includes(node.id)),
+          setAllNodes((currentNodes) =>
+            currentNodes.filter((node) => !delta.removedNodes.includes(node.id)),
           );
-          setAllEdges((eds) =>
-            eds.filter(
+          setAllEdges((currentEdges) =>
+            currentEdges.filter(
               (edge) =>
                 !delta.removedNodes.includes(edge.source) &&
                 !delta.removedNodes.includes(edge.target),
@@ -272,24 +251,23 @@ export default function Flow() {
           );
         }
 
-        // Handle added edges
         if (delta.addedEdges.length > 0) {
-          const newEdges = delta.addedEdges.map((e) => createEdge(e));
-          setAllEdges((eds) => {
-            const edgeMap = new Map(eds.map((e) => [e.id, e]));
-            newEdges.forEach((e) => edgeMap.set(e.id, e));
+          const newEdges = delta.addedEdges.map((edge) => createEdge(edge));
+          setAllEdges((currentEdges) => {
+            const edgeMap = new Map(currentEdges.map((edge) => [edge.id, edge]));
+            newEdges.forEach((edge) => edgeMap.set(edge.id, edge));
             return Array.from(edgeMap.values());
           });
         }
 
-        // Handle removed edges
         if (delta.removedEdges.length > 0) {
-          setAllEdges((eds) =>
-            eds.filter(
+          setAllEdges((currentEdges) =>
+            currentEdges.filter(
               (edge) =>
                 !delta.removedEdges.some(
-                  (re) =>
-                    re.source === edge.source && re.target === edge.target,
+                  (removedEdge) =>
+                    removedEdge.source === edge.source &&
+                    removedEdge.target === edge.target,
                 ),
             ),
           );
@@ -301,6 +279,7 @@ export default function Flow() {
 
     return () => {
       isMounted = false;
+      setInitialLoading(false);
       setConnected(false);
       setReconnecting(false);
       if (reconnectTimeout) {
@@ -308,100 +287,60 @@ export default function Flow() {
       }
       eventSource?.close();
     };
-  }, [setAllNodes, setAllEdges]);
-
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges],
-  );
-
-  const onNodesDelete = useCallback(
-    (deleted: Node[]) => {
-      let remainingNodes = [...nodes];
-      setEdges((eds) =>
-        deleted.reduce((acc, node) => {
-          const incomers = getIncomers(node, remainingNodes, acc);
-          const outgoers = getOutgoers(node, remainingNodes, acc);
-          const connectedEdges = getConnectedEdges([node], acc);
-
-          const remainingEdges = acc.filter(
-            (edge) => !connectedEdges.includes(edge),
-          );
-
-          const createdEdges = incomers.flatMap(({ id: source }) =>
-            outgoers.map(({ id: target }) => ({
-              id: `${source}->${target}`,
-              source,
-              target,
-            })),
-          );
-
-          remainingNodes = remainingNodes.filter((rn) => rn.id !== node.id);
-
-          return [...remainingEdges, ...createdEdges];
-        }, eds),
-      );
-    },
-    [nodes, setEdges],
-  );
-
-  const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
-    // Create resource ID from node data
-    const resourceId = node.id;
-    setSelectedResourceId(resourceId);
   }, []);
 
+  const handleSelectNode = (nodeId: string) => {
+    setSelectedResourceId(nodeId);
+    setFocusedResourceId(nodeId);
+  };
+
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100vh",
-      }}
-    >
-      <ReactFlow
+    <div className="relative h-screen w-screen overflow-hidden">
+      <D3GraphCanvas
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onNodesDelete={onNodesDelete}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeClick={onNodeClick}
-        nodeTypes={nodeTypes}
-        fitView
-        colorMode={"dark"}
-      >
-        <Background />
-        <MiniMap />
-        <Controls />
+        selectedNodeId={selectedResourceId}
+        focusedNodeId={focusedResourceId}
+        onNodeClick={setSelectedResourceId}
+      />
 
-        <Panel position="top-left">
-          <div className="flex flex-col gap-2">
-            <ResourceSearch
-              nodes={nodes}
-              onSelectNode={setSelectedResourceId}
-            />
-            {selectedResourceId && (
-              <ResourceDetailPanel
-                resourceId={selectedResourceId}
-                onClose={() => setSelectedResourceId(null)}
-              />
-            )}
+      <div className="absolute left-4 top-4 flex flex-col gap-2">
+        <ResourceSearch nodes={nodes} onSelectNode={handleSelectNode} />
+        {selectedResourceId && (
+          <ResourceDetailPanel
+            resourceId={selectedResourceId}
+            onClose={() => setSelectedResourceId(null)}
+          />
+        )}
+      </div>
+
+      <div className="absolute left-1/2 top-4 -translate-x-1/2">
+        <ConnectionStatus
+          connected={connected}
+          reconnecting={reconnecting}
+          reconnectAttempt={reconnectAttempt}
+        />
+      </div>
+
+      <div className="absolute right-4 top-4 space-y-2">
+        <ResourceTypeFilter
+          allNodes={allNodes}
+          allEdges={allEdges}
+          visibleResourceTypes={visibleResourceTypes}
+          setVisibleResourceTypes={setVisibleResourceTypes}
+          hiddenEdgeTypes={hiddenEdgeTypes}
+          setHiddenEdgeTypes={setHiddenEdgeTypes}
+        />
+      </div>
+
+      {initialLoading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 text-white">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+            <div className="text-sm font-semibold tracking-wide">Loading</div>
           </div>
-        </Panel>
-
-        <Panel position="top-right" className="space-y-2">
-          <ConnectionStatus
-            connected={connected}
-            reconnecting={reconnecting}
-            reconnectAttempt={reconnectAttempt}
-          />
-          <ResourceTypeFilter
-            allNodes={allNodes}
-            visibleResourceTypes={visibleResourceTypes}
-            setVisibleResourceTypes={setVisibleResourceTypes}
-          />
-        </Panel>
-      </ReactFlow>
+        </div>
+      )}
     </div>
   );
 }

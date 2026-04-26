@@ -18,8 +18,89 @@ const edgeKey = (edge: Edge): string => {
   return `${edge.source}|${edge.target}|${edge.type}`;
 };
 
+const addPodConfigEdges = (
+  pod: k8s.V1Pod,
+  id: string,
+  namespace: string,
+  addEdge: (edge: Edge) => void,
+) => {
+  pod.spec?.imagePullSecrets?.forEach((secret) => {
+    if (secret.name) {
+      addEdge({
+        source: id,
+        target: `Secret:${namespace}/${secret.name}`,
+        type: "uses-secret",
+      });
+    }
+  });
+
+  pod.spec?.volumes?.forEach((volume) => {
+    if (volume.secret?.secretName) {
+      addEdge({
+        source: id,
+        target: `Secret:${namespace}/${volume.secret.secretName}`,
+        type: "uses-secret",
+      });
+    }
+
+    if (volume.configMap?.name) {
+      addEdge({
+        source: id,
+        target: `ConfigMap:${namespace}/${volume.configMap.name}`,
+        type: "uses-config",
+      });
+    }
+  });
+
+  pod.spec?.containers?.forEach((container) => {
+    container.envFrom?.forEach((envFrom) => {
+      if (envFrom.configMapRef?.name) {
+        addEdge({
+          source: id,
+          target: `ConfigMap:${namespace}/${envFrom.configMapRef.name}`,
+          type: "uses-config",
+        });
+      }
+
+      if (envFrom.secretRef?.name) {
+        addEdge({
+          source: id,
+          target: `Secret:${namespace}/${envFrom.secretRef.name}`,
+          type: "uses-secret",
+        });
+      }
+    });
+
+    container.env?.forEach((env) => {
+      const configMapName = env.valueFrom?.configMapKeyRef?.name;
+      if (configMapName) {
+        addEdge({
+          source: id,
+          target: `ConfigMap:${namespace}/${configMapName}`,
+          type: "uses-config",
+        });
+      }
+
+      const secretName = env.valueFrom?.secretKeyRef?.name;
+      if (secretName) {
+        addEdge({
+          source: id,
+          target: `Secret:${namespace}/${secretName}`,
+          type: "uses-secret",
+        });
+      }
+    });
+  });
+};
+
 export const getEdges = (resources: ResourceData[]) => {
   const edges: { source: string; target: string; type: string }[] = [];
+  const resourceIds = new Set(resources.map(getResourceId));
+  const addEdge = (edge: Edge) => {
+    if (resourceIds.has(edge.source) && resourceIds.has(edge.target)) {
+      edges.push(edge);
+    }
+  };
 
   resources.forEach((res) => {
     const resourceType = res.resourceType;
@@ -39,7 +120,7 @@ export const getEdges = (resources: ResourceData[]) => {
         raw.metadata?.ownerReferences &&
         raw.metadata.ownerReferences.length > 0;
       if (!hasOwner) {
-        edges.push({
+        addEdge({
           source: `Namespace:/${namespace}`,
           target: id,
           type: "contains",
@@ -51,7 +132,7 @@ export const getEdges = (resources: ResourceData[]) => {
     if (raw.metadata?.ownerReferences) {
       raw.metadata.ownerReferences.forEach((owner) => {
         const ownerId = `${owner.kind}:${namespace}/${owner.name}`;
-        edges.push({
+        addEdge({
           source: ownerId,
           target: id,
           type: "owner",
@@ -87,7 +168,7 @@ export const getEdges = (resources: ResourceData[]) => {
         rule.http?.paths?.forEach((path) => {
           const svcName = path.backend?.service?.name;
           if (svcName) {
-            edges.push({
+            addEdge({
               source: id,
               target: `Service:${namespace}/${svcName}`,
               type: "routes-to",
@@ -97,33 +178,39 @@ export const getEdges = (resources: ResourceData[]) => {
       });
     }
 
-    // 4. Pod -> PVC and Node
-    // if (resourceType === "Pod") {
-    //   // Pod -> Node
-    //   // if (raw.spec?.nodeName) {
-    //   //   edges.push({
-    //   //     source: `Node:undefined/${raw.spec.nodeName}`,
-    //   //     target: id,
-    //   //     type: "hosted-on",
-    //   //   });
-    //   // }
-    //   // Pod -> PVC
-    //   raw.spec?.volumes?.forEach((vol: any) => {
-    //     if (vol.persistentVolumeClaim?.claimName) {
-    //       edges.push({
-    //         source: id,
-    //         target: `PersistentVolumeClaim:${namespace}/${vol.persistentVolumeClaim.claimName}`,
-    //         type: "uses-pvc",
-    //       });
-    //     }
-    //   });
-    // }
+    // 4. Node -> Pod
+    if (resourceType === ResourceType.Pod) {
+      const pod = res.raw as k8s.V1Pod;
+      if (pod.spec?.nodeName) {
+        addEdge({
+          source: `Node:/${pod.spec.nodeName}`,
+          target: id,
+          type: "hosted-on",
+        });
+      }
 
-    // 5. PVC -> PV
+      addPodConfigEdges(pod, id, namespace, addEdge);
+    }
+
+    // 5. Service -> EndpointSlice
+    if (resourceType === ResourceType.EndpointSlice) {
+      const endpointSlice = res.raw as k8s.V1EndpointSlice;
+      const serviceName =
+        endpointSlice.metadata?.labels?.["kubernetes.io/service-name"];
+      if (serviceName) {
+        addEdge({
+          source: `Service:${namespace}/${serviceName}`,
+          target: id,
+          type: "has-endpoints",
+        });
+      }
+    }
+
+    // 6. PVC -> PV
     if (resourceType === ResourceType.PersistentVolumeClaim) {
       const spec = res.raw.spec as k8s.V1PersistentVolumeClaimSpec;
       if (spec.volumeName) {
-        edges.push({
+        addEdge({
           source: id,
           target: `PersistentVolume:/${spec.volumeName}`,
           type: "binds-to",

@@ -18,6 +18,17 @@ body {
     sans-serif;
 }
 
+.d3-edge-flow path {
+  stroke-dasharray: 8 6;
+  animation: d3-edge-flow 0.9s linear infinite;
+}
+
+@keyframes d3-edge-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
 @layer utilities {
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {

@@ -1,7 +1,63 @@
 // Resource types from backend
+export interface ResourceMetadata {
+  name?: string;
+  namespace?: string;
+  creationTimestamp?: string;
+  uid?: string;
+  labels?: Record<string, string>;
+  annotations?: Record<string, string>;
+}
+
+export interface ResourceCondition {
+  type?: string;
+  status?: string;
+}
+
+export interface ContainerStatus {
+  name?: string;
+  ready?: boolean;
+  image?: string;
+  restartCount?: number;
+}
+
+export interface ResourceStatus {
+  phase?: string;
+  availableReplicas?: number;
+  fullyLabeledReplicas?: number;
+  observedGeneration?: number;
+  readyReplicas?: number;
+  replicas?: number;
+  conditions?: ResourceCondition[];
+  containerStatuses?: ContainerStatus[];
+  [key: string]: unknown;
+}
+
+export interface ServicePort {
+  name?: string;
+  port?: number;
+  targetPort?: string | number;
+  protocol?: string;
+}
+
+export interface ResourceSpec {
+  ports?: ServicePort[];
+  replicas?: number;
+  strategy?: {
+    type?: string;
+  };
+  [key: string]: unknown;
+}
+
+export interface KubernetesResource {
+  metadata?: ResourceMetadata;
+  spec?: ResourceSpec;
+  status?: ResourceStatus;
+  data?: Record<string, string>;
+}
+
 export interface ResourceData {
   resourceType: string;
-  raw: any; // Full Kubernetes object
+  raw: KubernetesResource;
 }
 
 // Helper function to create resource ID

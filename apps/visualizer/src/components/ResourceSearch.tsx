@@ -1,10 +1,9 @@
 import { useState } from "react";
-import type { Node } from "@xyflow/react";
-import { useReactFlow } from "@xyflow/react";
+import type { GraphNode } from "../types/graph";
 import ResourceIcon from "./ResourceIcon";
 
 interface ResourceSearchProps {
-  nodes: Node[];
+  nodes: GraphNode[];
   onSelectNode: (nodeId: string) => void;
 }
 
@@ -13,24 +12,18 @@ export default function ResourceSearch({
   onSelectNode,
 }: ResourceSearchProps) {
   const [filterValue, setFilterValue] = useState<string>("");
-  const { setCenter } = useReactFlow();
 
   const handleSelect = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
     if (node) {
       onSelectNode(nodeId);
-      setCenter(node.position.x + 100, node.position.y + 40, {
-        zoom: 1.3,
-        duration: 800,
-        interpolate: "linear",
-      });
-      setFilterValue(""); // Clear search on select
+      setFilterValue("");
     }
   };
 
   const filteredNodes = filterValue
     ? nodes.filter((node) => {
-        const label = (node.data?.label as string) || "";
+        const label = node.data.label;
         return (
           node.id.toLowerCase().includes(filterValue.toLowerCase()) ||
           label.toLowerCase().includes(filterValue.toLowerCase())
@@ -95,7 +88,7 @@ export default function ResourceSearch({
                   (key) => typeDisplayMap[key].toLowerCase() === node.type,
                 ) || "Pod";
 
-              const label = (node.data?.label as string) || node.id;
+              const label = node.data.label || node.id;
 
               return (
                 <button

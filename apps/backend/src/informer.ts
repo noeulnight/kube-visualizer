@@ -12,8 +12,13 @@ const kc = new k8s.KubeConfig();
 
 if (process.env.KUBECONFIG) {
   kc.loadFromFile(process.env.KUBECONFIG);
-} else {
+} else if (
+  process.env.KUBERNETES_SERVICE_HOST &&
+  process.env.KUBERNETES_SERVICE_PORT
+) {
   kc.loadFromCluster();
+} else {
+  kc.loadFromDefault();
 }
 
 const coreApi = kc.makeApiClient(k8s.CoreV1Api);
