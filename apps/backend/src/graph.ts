@@ -116,10 +116,10 @@ export const getEdges = (resources: ResourceData[]) => {
       resourceType !== "Node"
       // && resourceType !== "Service"
     ) {
-      const hasOwner =
-        raw.metadata?.ownerReferences &&
-        raw.metadata.ownerReferences.length > 0;
-      if (!hasOwner) {
+      const hasGraphOwner = raw.metadata?.ownerReferences?.some((owner) =>
+        resourceIds.has(`${owner.kind}:${namespace}/${owner.name}`),
+      );
+      if (!hasGraphOwner) {
         addEdge({
           source: `Namespace:/${namespace}`,
           target: id,
