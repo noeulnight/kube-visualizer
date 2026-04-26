@@ -2,6 +2,7 @@
   "name": "visualizer",
   "private": true,
   "version": "0.0.0",
+  "description": "React frontend for the Kube Visualizer Kubernetes resource graph.",
   "type": "module",
   "scripts": {
     "dev": "vite",
