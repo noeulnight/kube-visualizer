@@ -84,7 +84,7 @@ export default function ResourceTypeFilter({
           })}
         </div>
 
-        <div className="border-t border-white/10 pt-2 mb-3">
+        <div className="border-t border-white/10 pt-2">
           <h4 className="text-white/70 font-semibold text-[10px] uppercase tracking-wide mb-1">
             Edge Types
           </h4>
@@ -108,23 +108,6 @@ export default function ResourceTypeFilter({
             ))}
           </div>
         </div>
-      </div>
-
-      <div className="flex gap-1">
-        <button
-          onClick={() =>
-            setVisibleResourceTypes(new Set(Object.values(typeMapping)))
-          }
-          className="px-2 py-0.5 bg-green-600 hover:bg-green-700 text-white rounded text-[10px] font-semibold transition-colors"
-        >
-          All
-        </button>
-        <button
-          onClick={() => setVisibleResourceTypes(new Set())}
-          className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] font-semibold transition-colors"
-        >
-          None
-        </button>
       </div>
     </div>
   );

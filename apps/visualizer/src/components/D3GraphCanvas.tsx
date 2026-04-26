@@ -21,6 +21,7 @@ interface D3GraphCanvasProps {
   selectedNodeId: string | null;
   focusedNodeId: string | null;
   onNodeClick: (nodeId: string) => void;
+  onInitialRenderComplete?: () => void;
 }
 
 interface HoveredNode {
@@ -82,6 +83,7 @@ export default function D3GraphCanvas({
   selectedNodeId,
   focusedNodeId,
   onNodeClick,
+  onInitialRenderComplete,
 }: D3GraphCanvasProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const viewportRef = useRef<SVGGElement | null>(null);
@@ -91,6 +93,7 @@ export default function D3GraphCanvas({
   const nodesRef = useRef<GraphNode[]>(nodes);
   const zoomBucketRef = useRef<"detail" | "simple">("detail");
   const dragStateRef = useRef<DragState | null>(null);
+  const didInitialFitRef = useRef(false);
   const [zoomBucket, setZoomBucket] = useState<"detail" | "simple">("detail");
   const [dragPositions, setDragPositions] = useState<
     Record<string, GraphNode["position"]>
@@ -141,15 +144,6 @@ export default function D3GraphCanvas({
     () => new Map(edges.map((edge) => [edge.id, edge])),
     [edges],
   );
-  const graphStructureKey = useMemo(
-    () =>
-      [
-        nodeIdsKey,
-        edgeIdsKey,
-      ].join("::"),
-    [edgeIdsKey, nodeIdsKey],
-  );
-
   const getGraphPoint = useCallback((event: ReactPointerEvent) => {
     const svg = svgRef.current;
     if (!svg) return null;
@@ -210,6 +204,15 @@ export default function D3GraphCanvas({
         simNode.fx = nextPosition.x + graphNodeWidth / 2;
         simNode.fy = nextPosition.y + graphNodeHeight / 2;
       }
+      setHoveredNode((current) =>
+        current?.id === dragState.nodeId
+          ? {
+              id: dragState.nodeId,
+              x: event.clientX,
+              y: event.clientY,
+            }
+          : current,
+      );
       setDragPositions((currentPositions) => ({
         ...currentPositions,
         [dragState.nodeId]: nextPosition,
@@ -403,8 +406,32 @@ export default function D3GraphCanvas({
   }, [edgeIdsKey, edgesById, nodeIdsKey, nodesById]);
 
   useEffect(() => {
+    if (didInitialFitRef.current || displayNodes.length === 0) return;
+    didInitialFitRef.current = true;
     fitView();
-  }, [fitView, graphStructureKey]);
+  }, [displayNodes.length, fitView]);
+
+  useEffect(() => {
+    if (!onInitialRenderComplete || displayNodes.length === 0) return;
+
+    let firstFrame: number | null = null;
+    let secondFrame: number | null = null;
+    const timeout = window.setTimeout(() => {
+      firstFrame = requestAnimationFrame(() => {
+        secondFrame = requestAnimationFrame(onInitialRenderComplete);
+      });
+    }, 550);
+
+    return () => {
+      window.clearTimeout(timeout);
+      if (firstFrame !== null) {
+        cancelAnimationFrame(firstFrame);
+      }
+      if (secondFrame !== null) {
+        cancelAnimationFrame(secondFrame);
+      }
+    };
+  }, [displayNodes.length, onInitialRenderComplete]);
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -515,10 +542,8 @@ export default function D3GraphCanvas({
                     fill={color}
                     fillOpacity={zoomBucket === "detail" ? 0.22 : 0.9}
                     stroke={selected ? "#bfdbfe" : "none"}
-                    strokeWidth={selected ? 2.5 : 0}
-                  >
-                    <title>{`${node.type}: ${node.data.label}`}</title>
-                  </circle>
+                    strokeWidth={selected ? 0.7 : 0}
+                  />
                   <image
                     href={`/k8s/${node.data.icon}`}
                     x={-currentIconSize / 2}
