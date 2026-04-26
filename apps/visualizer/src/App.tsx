@@ -71,27 +71,27 @@ const resourceIcons: Record<string, string> = {
 const getResourceIcon = (type: string) => resourceIcons[type] || "pod.svg";
 
 const createEdge = (edge: EdgeData): GraphEdge => {
-  let style = { stroke: "#999", strokeWidth: 1 };
+  let style = { stroke: "#999", strokeWidth: 0.7 };
   let animated = false;
 
   if (edge.type === "owner") {
-    style = { stroke: "#f43f5e", strokeWidth: 2 };
+    style = { stroke: "#f43f5e", strokeWidth: 0.7 };
   } else if (edge.type === "contains") {
-    style = { stroke: "#a855f7", strokeWidth: 1 };
+    style = { stroke: "#a855f7", strokeWidth: 0.7 };
   } else if (edge.type === "selects") {
-    style = { stroke: "#22c55e", strokeWidth: 1.5 };
+    style = { stroke: "#22c55e", strokeWidth: 0.7 };
     animated = true;
   } else if (edge.type === "routes-to") {
-    style = { stroke: "#06b6d4", strokeWidth: 2 };
+    style = { stroke: "#06b6d4", strokeWidth: 0.7 };
     animated = true;
   } else if (edge.type === "hosted-on") {
-    style = { stroke: "#fb923c", strokeWidth: 1.5 };
+    style = { stroke: "#fb923c", strokeWidth: 0.7 };
   } else if (edge.type === "uses-secret") {
-    style = { stroke: "#eab308", strokeWidth: 1.2 };
+    style = { stroke: "#eab308", strokeWidth: 0.7 };
   } else if (edge.type === "uses-config") {
-    style = { stroke: "#f59e0b", strokeWidth: 1.2 };
+    style = { stroke: "#f59e0b", strokeWidth: 0.7 };
   } else if (edge.type === "has-endpoints") {
-    style = { stroke: "#38bdf8", strokeWidth: 1.4 };
+    style = { stroke: "#38bdf8", strokeWidth: 0.7 };
   }
 
   return {
